@@ -150,6 +150,9 @@ public class Image {
 
         int avg = (int) (sum / n);
         int contrast = (int) (sumSequence/n - avg*avg);
+        int center = 8 + this.version * 2;
+        contrast = 100 - Math.max(Math.abs(x - center) * 5 / 4, Math.abs(y - center)) * 100 - Math.min(Math.abs(x - center) * 5 / 4, Math.abs(y - center));
+        // contrast = 100 - Math.max(Math.abs(x - center), Math.abs(y - center)) * 100 - Math.min(Math.abs(x - center), Math.abs(y - center));
         return new Target(targ, contrast);
     }
 
@@ -221,35 +224,40 @@ public class Image {
             }
         }
 
-        String url = this.URL + "#";
+        String url = this.URL;
         int errorCount;
 
         Bits bits = new Bits();
         // Count fixed initial data bits, prepare template URL.
-        new Raw(url).encode(bits, plan.getVersion());
-        new Number("").encode(bits, plan.getVersion());
+        Encoding dataEncoding = new Alpha(url);
+        if (dataEncoding.validate() != null) {
+            dataEncoding = new Raw(url);
+        }
+        dataEncoding.encode(bits, plan.getVersion());
+        new Padding(new byte[0]).encode(bits, plan.getVersion());
         int headSize = bits.getSize();
+        System.out.println("headSize: " + headSize);
         int dataBitsRemaining = plan.getNumberOfDataBytes()*8 - headSize;
         if(dataBitsRemaining < 0) {
             throw new QArtException("cannot encode URL into available bits");
         }
 
-        byte[] numbers = new byte[dataBitsRemaining/10*3];
+        byte[] paddings = new byte[dataBitsRemaining];
 
         do {
             int nd = numberOfDataBytesPerBlock;
             bits.reset();
-            Arrays.fill(numbers, (byte) '0');
+            Arrays.fill(paddings, (byte) 0);
 
-            new Raw(url).encode(bits, plan.getVersion());
-            new Number(new String(numbers)).encode(bits, plan.getVersion());
+            dataEncoding.encode(bits, plan.getVersion());
+            new Padding(paddings).encode(bits, plan.getVersion());
             bits.addCheckBytes(plan.getVersion(), plan.getLevel());
 
             byte[] data = bits.getBits();
 
             int dataOffset = 0;
             int checkOffset = 0;
-            int mainDataBits = headSize + dataBitsRemaining/10*10;
+            int mainDataBits = headSize + dataBitsRemaining;
 
             // Choose pixels.
             BitBlock[] bitBlocks = new BitBlock[plan.getNumberOfBlocks()];
@@ -469,39 +477,18 @@ public class Image {
             }
 
             errorCount = 0;
-            // Copy numbers back out.
-            for (int i = 0; i < dataBitsRemaining/10; i++) {
-                // Pull out 10 bits.
-                int v = 0;
-                for (int j = 0; j < 10; j++) {
-                    int index = headSize + 10*i + j;
-                    v <<= 1;
-                    v |= ((data[index/8] >> (7 - index&7)) & 1);
-                }
-                // Turn into 3 digits.
-                if (v >= 1000) {
-                    // Oops - too many 1 bits.
-                    // We know the 512, 256, 128, 64, 32 bits are all set.
-                    // Pick one at random to clear.  This will break some
-                    // checksum bits, but so be it.
-                    LOGGER.debug("oops, i: {}, v: {}", i, v);
-                    PixelInfo info = pixelByOffset[headSize + 10*i + 3];
-                    info.setContrast(Integer.MAX_VALUE >> 8);
-                    info.setHardZero(true);
-                    errorCount++;
-//                    v = 999;
-                }
-                numbers[i*3+0] = (byte) (v/100 + '0');
-                numbers[i*3+1] = (byte) (v/10%10 + '0');
-                numbers[i*3+2] = (byte) (v%10 + '0');
-            }
 
+            // Copy data back out.
+            for (int i = 0; i < dataBitsRemaining; i++) {
+                int index = headSize + i;
+                paddings[i] = (byte) ((data[index/8] >> (7 - index&7)) & 1);;
+            }
         } while (errorCount > 0);
 
 
         Bits finalBits = new Bits();
-        new Raw(url).encode(finalBits, plan.getVersion());
-        new Number(new String(numbers)).encode(finalBits, plan.getVersion());
+        dataEncoding.encode(finalBits, plan.getVersion());
+        new Padding(paddings).encode(finalBits, plan.getVersion());
         finalBits.addCheckBytes(plan.getVersion(), plan.getLevel());
 
         if(!Arrays.equals(finalBits.getBits(), bits.getBits())) {
@@ -509,7 +496,7 @@ public class Image {
             throw new QArtException("byte mismatch");
         }
 
-        QRCode qrCode = Plan.encode(plan, new Raw(url), new Number(new String(numbers)));
+        QRCode qrCode = Plan.encode(plan, dataEncoding, new Padding(paddings));
 
 //        if m.SaveControl {
 //            m.Control = pngEncode(makeImage(req, "", "", 0, cc.Size, 4, m.Scale, func(x, y int) (rgba uint32) {
