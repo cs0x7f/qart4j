@@ -36,6 +36,7 @@ public class Image {
     private byte[] control;
 
     private boolean noAlign;
+    private int pixelPriority;
 
     public Image(int[][] target, int dx, int dy, int version) {
         this.target = target;
@@ -46,7 +47,7 @@ public class Image {
 
     public Image(int[][] target, int dx, int dy, String URL,
                  int version, int mask, int rotation,
-                 boolean randControl, long seed, boolean dither, boolean onlyDataBits, boolean saveControl, boolean noAlign) throws IOException, ImageReadException {
+                 boolean randControl, long seed, boolean dither, boolean onlyDataBits, boolean saveControl, boolean noAlign, int pixelPriority) throws IOException, ImageReadException {
         this.target = target;
         this.dx = dx;
         this.dy = dy;
@@ -62,6 +63,7 @@ public class Image {
         this.onlyDataBits = onlyDataBits;
         this.saveControl = saveControl;
         this.noAlign = noAlign;
+        this.pixelPriority = pixelPriority;
 
         this.divider = calculateDivider();
     }
@@ -122,6 +124,10 @@ public class Image {
         this.noAlign = noAlign;
     }
 
+    public void setPixelPriority(int pixelPriority) {
+        this.pixelPriority = pixelPriority;
+    }
+
     public void setControl(byte[] control) {
         this.control = control;
     }
@@ -140,26 +146,35 @@ public class Image {
 
         byte targ = (byte) v0;
 
-        int n = 0;
-        long sum = 0;
-        long sumSequence = 0;
-        int del = 5;
-        for (int dy = -del; dy <= del; dy++) {
-            for (int dx = -del; dx <= del; dx++) {
-                if (0 <= ty+dy && ty+dy < this.target.length && 0 <= tx+dx && tx+dx < this.target[ty+dy].length) {
-                    int v = this.target[ty+dy][tx+dx];
-                    sum += v;
-                    sumSequence += v * v;
-                    n++;
+        int contrast = 0;
+        if (this.pixelPriority == 0) {
+            int n = 0;
+            long sum = 0;
+            long sumSequence = 0;
+            int del = 5;
+            for (int dy = -del; dy <= del; dy++) {
+                for (int dx = -del; dx <= del; dx++) {
+                    if (0 <= ty+dy && ty+dy < this.target.length && 0 <= tx+dx && tx+dx < this.target[ty+dy].length) {
+                        int v = this.target[ty+dy][tx+dx];
+                        sum += v;
+                        sumSequence += v * v;
+                        n++;
+                    }
                 }
             }
-        }
 
-        int avg = (int) (sum / n);
-        int contrast = (int) (sumSequence/n - avg*avg);
-        int center = 8 + this.version * 2;
-        contrast = 100 - Math.max(Math.abs(x - center) * 5 / 4, Math.abs(y - center)) * 100 - Math.min(Math.abs(x - center) * 5 / 4, Math.abs(y - center));
-        // contrast = 100 - Math.max(Math.abs(x - center), Math.abs(y - center)) * 100 - Math.min(Math.abs(x - center), Math.abs(y - center));
+            int avg = (int) (sum / n);
+            contrast = (int) (sumSequence/n - avg*avg);
+        } else if (this.pixelPriority == 1) {
+            int center = 8 + this.version * 2;
+            contrast = 100000 - Math.max(Math.abs(x - center), Math.abs(y - center)) * 100 - Math.min(Math.abs(x - center), Math.abs(y - center));
+        } else if (this.pixelPriority == 2) {
+            int center = 8 + this.version * 2;
+            contrast = 100000 - (x - center) * (x - center) - (y - center) * (y - center);
+        } else if (this.pixelPriority == 3) {
+            int center = 8 + this.version * 2;
+                        contrast = 100000 - Math.max(Math.abs(x - center) * 5 / 4, Math.abs(y - center)) * 100 - Math.min(Math.abs(x - center) * 5 / 4, Math.abs(y - center));
+        }
         return new Target(targ, contrast);
     }
 
