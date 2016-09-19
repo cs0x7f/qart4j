@@ -35,6 +35,8 @@ public class Image {
     private boolean saveControl;
     private byte[] control;
 
+    private boolean noAlign;
+
     public Image(int[][] target, int dx, int dy, int version) {
         this.target = target;
         this.dx = dx;
@@ -44,7 +46,7 @@ public class Image {
 
     public Image(int[][] target, int dx, int dy, String URL,
                  int version, int mask, int rotation,
-                 boolean randControl, long seed, boolean dither, boolean onlyDataBits, boolean saveControl) throws IOException, ImageReadException {
+                 boolean randControl, long seed, boolean dither, boolean onlyDataBits, boolean saveControl, boolean noAlign) throws IOException, ImageReadException {
         this.target = target;
         this.dx = dx;
         this.dy = dy;
@@ -59,6 +61,7 @@ public class Image {
         this.dither = dither;
         this.onlyDataBits = onlyDataBits;
         this.saveControl = saveControl;
+        this.noAlign = noAlign;
 
         this.divider = calculateDivider();
     }
@@ -113,6 +116,10 @@ public class Image {
 
     public void setSaveControl(boolean saveControl) {
         this.saveControl = saveControl;
+    }
+
+    public void setNoAlign(boolean noAlign) {
+        this.noAlign = noAlign;
     }
 
     public void setControl(byte[] control) {
@@ -516,6 +523,28 @@ public class Image {
 //                return 0xbfbfbfff
 //            }))
 //        }
+
+        if (this.noAlign) {
+            Pixel pixelWhite = new Pixel(Pixel.PixelRole.ALIGNMENT);
+            Pixel pixelBlack = new Pixel(Pixel.PixelRole.ALIGNMENT);
+            pixelBlack.setPixel(Pixel.BLACK.getPixel());
+            for(int y = 0;y < pixels.length;y++) {
+                Pixel[] row = pixels[y];
+                for(int x = 0;x < row.length;x++) {
+                    Pixel pixel = row[x];
+                    Pixel.PixelRole role = pixel.getPixelRole();
+                    if (role != Pixel.PixelRole.ALIGNMENT) {
+                        continue;
+                    }
+                    if (y > pixels.length - 10 && x > row.length - 10) {
+                        continue;
+                    }
+                    int targ = target(x, y).target & 0xff;
+
+                    pixels[y][x] = (targ >= this.divider) ? pixelWhite : pixelBlack;
+                }
+            }
+        }
 
         return qrCode;
     }

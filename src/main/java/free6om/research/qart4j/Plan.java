@@ -279,22 +279,6 @@ public class Plan {
             Arrays.fill(pixels[y], new Pixel(0));
         }
 
-        int timingPosition = 6;
-        for(int i = 0;i < size;i++) {
-            Pixel pixel = new Pixel(Pixel.PixelRole.TIMING);
-            if((i&1) == 0) {
-                pixel.orPixel(Pixel.BLACK.getPixel());
-            }
-
-            pixels[i][timingPosition] = pixel;
-            pixels[timingPosition][i] = pixel;
-        }
-
-        //position box
-        setPositionBox(pixels, 0, 0);
-        setPositionBox(pixels, size - 7, 0);
-        setPositionBox(pixels, 0, size - 7);
-
         //Alignment box
         Version.VersionInfo versionInfo = Version.VERSION_INFOS[version.getVersion()];
         for(int x = 4;x + 5 < size;) {
@@ -317,6 +301,22 @@ public class Plan {
                 x += versionInfo.stride;
             }
         }
+
+        int timingPosition = 6;
+        for(int i = 0;i < size;i++) {
+            Pixel pixel = new Pixel(Pixel.PixelRole.TIMING);
+            if((i&1) == 0) {
+                pixel.orPixel(Pixel.BLACK.getPixel());
+            }
+
+            pixels[i][timingPosition] = pixel;
+            pixels[timingPosition][i] = pixel;
+        }
+
+        //position box
+        setPositionBox(pixels, 0, 0);
+        setPositionBox(pixels, size - 7, 0);
+        setPositionBox(pixels, 0, size - 7);
 
         //version pattern
         int pattern = versionInfo.pattern;

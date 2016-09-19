@@ -95,6 +95,10 @@ public class QArt {
                         .ofType(Boolean.class)
                         .describedAs("show pixel we have control")
                         .defaultsTo(Boolean.FALSE);
+                acceptsAll(Arrays.asList("na", "noAlign")).withOptionalArg()
+                        .ofType(Boolean.class)
+                        .describedAs("remove some of alignment patterns")
+                        .defaultsTo(Boolean.FALSE);
                 //output image
                 acceptsAll(Arrays.asList("mt", "marginTop")).withOptionalArg()
                         .ofType(Integer.class)
@@ -162,6 +166,7 @@ public class QArt {
         boolean dither = (Boolean) options.valueOf("d");
         boolean onlyDataBits = (Boolean) options.valueOf("onlyData");
         boolean saveControl = (Boolean) options.valueOf("saveControl");
+        boolean noAlign = options.has("noAlign");
 
         //output image
         int width = (Integer) options.valueOf("w");
@@ -228,7 +233,7 @@ public class QArt {
             }
 
 
-            Image image = new Image(target, dx, dy, url, version, mask, rotation, randControl, seed, dither, onlyDataBits, saveControl);
+            Image image = new Image(target, dx, dy, url, version, mask, rotation, randControl, seed, dither, onlyDataBits, saveControl, noAlign);
 
             QRCode qrCode = image.encode();
             BitMatrix bitMatrix = ImageUtil.makeBitMatrix(qrCode, quietZone, size);
