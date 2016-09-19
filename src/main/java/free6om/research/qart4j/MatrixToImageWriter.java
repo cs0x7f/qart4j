@@ -71,6 +71,38 @@ public final class MatrixToImageWriter {
   }
 
   /**
+   * As {@link #toBufferedImage(BitMatrix, MatrixToImageConfig)}, but allows customization of the output.
+   *
+   * @param matrix {@link BitMatrix} to write
+   * @param ctrlMatrix {@link BitMatrix} to identify control bits
+   * @param config output configuration
+   * @return {@link BufferedImage} representation of the input
+   */
+  public static BufferedImage toBufferedImage(BitMatrix matrix, BitMatrix ctrlMatrix, MatrixToImageConfig config) {
+    int width = matrix.getWidth();
+    int height = matrix.getHeight();
+    int colorModel = config.getBufferedImageColorModel();
+    if (colorModel == BufferedImage.TYPE_BYTE_BINARY) {
+      colorModel = BufferedImage.TYPE_INT_RGB;
+    }
+    BufferedImage image = new BufferedImage(width, height, colorModel);
+    int onColor = config.getPixelOnColor();
+    int offColor = config.getPixelOffColor();
+    int onCtrlColor = config.getPixelOnCtrlColor();
+    int offCtrlColor = config.getPixelOffCtrlColor();
+    for (int x = 0; x < width; x++) {
+      for (int y = 0; y < height; y++) {
+        if (ctrlMatrix.get(x, y)) {
+          image.setRGB(x, y, matrix.get(x, y) ? onCtrlColor : offCtrlColor);
+        } else {
+          image.setRGB(x, y, matrix.get(x, y) ? onColor : offColor);
+        }
+      }
+    }
+    return image;
+  }
+
+  /**
    * @param matrix {@link BitMatrix} to write
    * @param format image format
    * @param file file {@link File} to write image to

@@ -173,7 +173,7 @@ public class Image {
             contrast = 100000 - (x - center) * (x - center) - (y - center) * (y - center);
         } else if (this.pixelPriority == 3) {
             int center = 8 + this.version * 2;
-                        contrast = 100000 - Math.max(Math.abs(x - center) * 5 / 4, Math.abs(y - center)) * 100 - Math.min(Math.abs(x - center) * 5 / 4, Math.abs(y - center));
+            contrast = 100000 - Math.max(Math.abs(x - center) * 5 / 4, Math.abs(y - center)) * 100 - Math.min(Math.abs(x - center) * 5 / 4, Math.abs(y - center));
         }
         return new Target(targ, contrast);
     }
@@ -520,24 +520,23 @@ public class Image {
 
         QRCode qrCode = Plan.encode(plan, dataEncoding, new Padding(paddings));
 
-//        if m.SaveControl {
-//            m.Control = pngEncode(makeImage(req, "", "", 0, cc.Size, 4, m.Scale, func(x, y int) (rgba uint32) {
-//                pix := p.Pixel[y][x]
-//                if pix.Role() == coding.Data || pix.Role() == coding.Check {
-//                    pinfo := &pixByOff[pix.Offset()]
-//                    if pinfo.Block != nil {
-//                        if cc.Black(x, y) {
-//                            return 0x000000ff
-//                        }
-//                        return 0xffffffff
-//                    }
-//                }
-//                if cc.Black(x, y) {
-//                    return 0x3f3f3fff
-//                }
-//                return 0xbfbfbfff
-//            }))
-//        }
+        if (this.saveControl) {
+            for(int y = 0;y < pixels.length;y++) {
+                Pixel[] row = pixels[y];
+                for(int x = 0;x < row.length;x++) {
+                    Pixel pixel = row[x];
+                    Pixel.PixelRole role = pixel.getPixelRole();
+                    if (role != Pixel.PixelRole.DATA && role != Pixel.PixelRole.CHECK) {
+                        pixels[y][x].setCtrl(1);
+                        continue;
+                    }
+                    PixelInfo info = pixelByOffset[pixel.getOffset()];
+                    if (info.getBlock() == null) {
+                        pixels[y][x].setCtrl(1);
+                    }
+                }
+            }
+        }
 
         if (this.noAlign) {
             Pixel pixelWhite = new Pixel(Pixel.PixelRole.ALIGNMENT);

@@ -91,7 +91,7 @@ public class QArt {
                         .ofType(Boolean.class)
                         .describedAs("only use data bits to emulate input image")
                         .defaultsTo(Boolean.FALSE);
-                acceptsAll(Arrays.asList("c", "saveControl")).withRequiredArg()
+                acceptsAll(Arrays.asList("c", "saveControl")).withOptionalArg()
                         .ofType(Boolean.class)
                         .describedAs("show pixel we have control")
                         .defaultsTo(Boolean.FALSE);
@@ -169,7 +169,7 @@ public class QArt {
         }
         boolean dither = (Boolean) options.valueOf("d");
         boolean onlyDataBits = (Boolean) options.valueOf("onlyData");
-        boolean saveControl = (Boolean) options.valueOf("saveControl");
+        boolean saveControl = options.has("saveControl");
         boolean noAlign = options.has("noAlign");
         int pixelPriority = (Integer) options.valueOf("pixelPriority");
 
@@ -244,7 +244,9 @@ public class QArt {
             BitMatrix bitMatrix = ImageUtil.makeBitMatrix(qrCode, quietZone, size);
 
             MatrixToImageConfig config = new MatrixToImageConfig(colorBlack, colorWhite);
-            BufferedImage finalQrImage = MatrixToImageWriter.toBufferedImage(bitMatrix, config);
+            BufferedImage finalQrImage = saveControl ?
+                MatrixToImageWriter.toBufferedImage(bitMatrix, ImageUtil.makeCtrlBitMatrix(qrCode, quietZone, size), config) :
+                MatrixToImageWriter.toBufferedImage(bitMatrix, config);
 
             Rectangle finalRect = qrRect.union(inputImageRect);
             BufferedImage finalImage = new BufferedImage(finalRect.width, finalRect.height, BufferedImage.TYPE_INT_RGB);

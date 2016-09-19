@@ -54,6 +54,14 @@ public class ImageUtil {
     }
 
     public static BitMatrix makeBitMatrix(QRCode code, int quietZone, int size) {
+        return makeBitMatrix(code, quietZone, size, false);
+    }
+
+    public static BitMatrix makeCtrlBitMatrix(QRCode code, int quietZone, int size) {
+        return makeBitMatrix(code, quietZone, size, true);
+    }
+
+    public static BitMatrix makeBitMatrix(QRCode code, int quietZone, int size, boolean makeControl) {
         Pixel[][] pixels = code.getPixels();
         byte[] bytes = code.getBytes();
 
@@ -89,7 +97,9 @@ public class ImageUtil {
                     }
                 }
 
-                if((pixel.getPixel()&Pixel.BLACK.getPixel()) != 0) {
+                if(makeControl ?
+                        pixel.getCtrl() != 0 :
+                        (pixel.getPixel() & Pixel.BLACK.getPixel()) != 0) {
                     output.setRegion(outputX, outputY, multiple, multiple);
                 }
             }

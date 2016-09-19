@@ -25,9 +25,15 @@ public final class MatrixToImageConfig {
 
   public static final int BLACK = 0xFF000000;
   public static final int WHITE = 0xFFFFFFFF;
+
+  public static final int LGRAY = 0xFF3F3F3F;
+  public static final int DGRAY = 0xFFBFBFBF;
   
   private final int onColor;
   private final int offColor;
+
+  private final int onCtrlColor;
+  private final int offCtrlColor;
 
   /**
    * Creates a default config with on color {@link #BLACK} and off color {@link #WHITE}, generating normal
@@ -42,8 +48,18 @@ public final class MatrixToImageConfig {
    * @param offColor pixel off color, specified as an ARGB value as an int
    */
   public MatrixToImageConfig(int onColor, int offColor) {
+    this(onColor, offColor, LGRAY, DGRAY);
+  }
+
+  /**
+   * @param onColor pixel on color, specified as an ARGB value as an int
+   * @param offColor pixel off color, specified as an ARGB value as an int
+   */
+  public MatrixToImageConfig(int onColor, int offColor, int onCtrlColor, int offCtrlColor) {
     this.onColor = onColor;
     this.offColor = offColor;
+    this.onCtrlColor = onCtrlColor;
+    this.offCtrlColor = offCtrlColor;
   }
 
   public int getPixelOnColor() {
@@ -52,6 +68,14 @@ public final class MatrixToImageConfig {
 
   public int getPixelOffColor() {
     return offColor;
+  }
+
+  public int getPixelOnCtrlColor() {
+    return onCtrlColor;
+  }
+
+  public int getPixelOffCtrlColor() {
+    return offCtrlColor;
   }
 
   int getBufferedImageColorModel() {

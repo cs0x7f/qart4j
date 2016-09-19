@@ -2,9 +2,9 @@ package free6om.research.qart4j;
 
 /**
  *
- * ----------------------------------------------------------------------------------
- * | 26bits for offset | 4bits for Role | 1bit for invert | 1bit for black or white |
- * ----------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------------
+ * | 25bits for offset | 1bit for ctrl | 4bits for Role | 1bit for invert | 1bit for black or white |
+ * --------------------------------------------------------------------------------------------------
  *
  * Created by free6om on 7/20/15.
  */
@@ -43,11 +43,19 @@ public class Pixel {
     }
 
     public int getOffset() {
-        return data >> 6;
+        return data >> 7;
     }
 
     public void setOffset(int offset) {
-        data = ((offset << 6) | (data & 0x03F));
+        data = ((offset << 7) | (data & 0x07F));
+    }
+
+    public int getCtrl() {
+        return (data >> 6) & 1;
+    }
+
+    public void setCtrl(int val) {
+        data = (data & (~0x40)) | ((val & 1) << 6);
     }
 
     public PixelRole getPixelRole() {
