@@ -38,6 +38,7 @@ public class Image {
     private boolean noAlign;
     private boolean noTiming;
     private int pixelPriority;
+    private int allowedError;
 
     public Image(int[][] target, int dx, int dy, int version) {
         this.target = target;
@@ -48,7 +49,7 @@ public class Image {
 
     public Image(int[][] target, int dx, int dy, String URL,
                  int version, int mask, int rotation,
-                 boolean randControl, long seed, boolean dither, boolean onlyDataBits, boolean saveControl, boolean noAlign, boolean noTiming, int pixelPriority) throws IOException, ImageReadException {
+                 boolean randControl, long seed, boolean dither, boolean onlyDataBits, boolean saveControl, boolean noAlign, boolean noTiming, int pixelPriority, int allowedError) throws IOException, ImageReadException {
         this.target = target;
         this.dx = dx;
         this.dy = dy;
@@ -66,6 +67,7 @@ public class Image {
         this.noAlign = noAlign;
         this.noTiming = noTiming;
         this.pixelPriority = pixelPriority;
+        this.allowedError = allowedError;
 
         this.divider = calculateDivider();
     }
@@ -224,6 +226,8 @@ public class Image {
 
         rotate(plan, rotation);
 
+        QRCode qrCode = Plan.encode(plan, new Padding(new byte[0]));
+
         Random random = new Random(seed);
 
         // QR parameters.
@@ -296,7 +300,7 @@ public class Image {
 
                 BitBlock bitBlock = new BitBlock(nd, numberOfCheckBytesPerBlock, encoder,
                         data, dataOffset/8,
-                        data, plan.getNumberOfDataBytes() + checkOffset/8);
+                        data, plan.getNumberOfDataBytes() + checkOffset/8, allowedError);
                 bitBlocks[blockNumber] = bitBlock;
 
                 // Determine which bits in this block we can try to edit.
@@ -514,17 +518,17 @@ public class Image {
         } while (errorCount > 0);
 
 
-        Bits finalBits = new Bits();
-        dataEncoding.encode(finalBits, plan.getVersion());
-        new Padding(paddings).encode(finalBits, plan.getVersion());
-        finalBits.addCheckBytes(plan.getVersion(), plan.getLevel());
+        // Bits finalBits = new Bits();
+        // dataEncoding.encode(finalBits, plan.getVersion());
+        // new Padding(paddings).encode(finalBits, plan.getVersion());
+        // finalBits.addCheckBytes(plan.getVersion(), plan.getLevel());
 
-        if(!Arrays.equals(finalBits.getBits(), bits.getBits())) {
-            LOGGER.warn("mismatch\n{} {}\n{} {}\n", bits.getBits().length, bits.getBits(), finalBits.getBits().length, finalBits.getBits());
-            throw new QArtException("byte mismatch");
-        }
+        // if(!Arrays.equals(finalBits.getBits(), bits.getBits())) {
+        //     LOGGER.warn("mismatch\n{} {}\n{} {}\n", bits.getBits().length, bits.getBits(), finalBits.getBits().length, finalBits.getBits());
+        //     throw new QArtException("byte mismatch");
+        // }
 
-        QRCode qrCode = Plan.encode(plan, dataEncoding, new Padding(paddings));
+        // qrCode = Plan.encode(plan, dataEncoding, new Padding(paddings));
 
         if (this.saveControl) {
             for(int y = 0;y < pixels.length;y++) {
@@ -552,7 +556,7 @@ public class Image {
             removePattern(Pixel.PixelRole.TIMING, pixels);
         }
 
-        return qrCode;
+        return new QRCode(bits.getBits(), pixels);
     }
 
     private void removePattern(Pixel.PixelRole target_role, Pixel[][] pixels) {

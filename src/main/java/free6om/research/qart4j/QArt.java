@@ -107,6 +107,10 @@ public class QArt {
                         .ofType(Integer.class)
                         .describedAs("Priority of pixels, 0 calculated by contrast, 1 center first (square), 2 center first (circle), 3 center first (5:4 rectangle)")
                         .defaultsTo(0);
+                acceptsAll(Arrays.asList("ae", "allowedError")).withOptionalArg()
+                        .ofType(Integer.class)
+                        .describedAs("Number of codewords allowed to be a desired error.")
+                        .defaultsTo(0);
                 //output image
                 acceptsAll(Arrays.asList("mt", "marginTop")).withOptionalArg()
                         .ofType(Integer.class)
@@ -177,6 +181,7 @@ public class QArt {
         boolean noAlign = options.has("noAlign");
         boolean noTiming = options.has("noTiming");
         int pixelPriority = (Integer) options.valueOf("pixelPriority");
+        int allowedError = (Integer) options.valueOf("allowedError");
 
         //output image
         int width = (Integer) options.valueOf("w");
@@ -243,7 +248,7 @@ public class QArt {
             }
 
 
-            Image image = new Image(target, dx, dy, url, version, mask, rotation, randControl, seed, dither, onlyDataBits, saveControl, noAlign, noTiming, pixelPriority);
+            Image image = new Image(target, dx, dy, url, version, mask, rotation, randControl, seed, dither, onlyDataBits, saveControl, noAlign, noTiming, pixelPriority, allowedError);
 
             QRCode qrCode = image.encode();
             BitMatrix bitMatrix = ImageUtil.makeBitMatrix(qrCode, quietZone, size);

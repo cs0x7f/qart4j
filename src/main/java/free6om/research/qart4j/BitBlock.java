@@ -11,6 +11,7 @@ public class BitBlock {
     private int numberOfDataBytes;
     private int numberOfCheckBytes;
     private byte[] blockBytes;
+    private boolean[] blockBytesAE;
     private byte[][] maskMatrix;
     private int maskIndex;
     private ReedSolomonEncoder encoder;
@@ -19,15 +20,21 @@ public class BitBlock {
     private byte[] primaryCheckBytes;
     private int primaryCheckIndex;
 
-    public BitBlock(int numberOfDataBytes, int numberOfCheckBytes, ReedSolomonEncoder encoder, byte[] primaryDataBytes, int primaryDataIndex, byte[] primaryCheckBytes, int primaryCheckIndex) throws QArtException {
+    private int allowedErrorCount;
+    private int allowedError;
+
+    public BitBlock(int numberOfDataBytes, int numberOfCheckBytes, ReedSolomonEncoder encoder, byte[] primaryDataBytes, int primaryDataIndex, byte[] primaryCheckBytes, int primaryCheckIndex, int allowedError) throws QArtException {
         this.numberOfDataBytes = numberOfDataBytes;
         this.numberOfCheckBytes = numberOfCheckBytes;
         this.encoder = encoder;
         this.blockBytes = new byte[numberOfDataBytes + numberOfCheckBytes];
+        this.blockBytesAE = new boolean[numberOfDataBytes + numberOfCheckBytes];
         this.primaryDataBytes = primaryDataBytes;
         this.primaryDataIndex = primaryDataIndex;
         this.primaryCheckBytes = primaryCheckBytes;
         this.primaryCheckIndex = primaryCheckIndex;
+        this.allowedError = allowedError;
+        this.allowedErrorCount = 0;
 
         System.arraycopy(primaryDataBytes, primaryDataIndex, blockBytes, 0, numberOfDataBytes);
         byte[] checkBytes = ReedSolomonUtil.generateECBytes(encoder, blockBytes, 0, numberOfDataBytes, numberOfCheckBytes);
@@ -57,12 +64,35 @@ public class BitBlock {
     }
 
     public void check() throws QArtException {
-        byte[] checkBytes = ReedSolomonUtil.generateECBytes(encoder, blockBytes, 0, numberOfDataBytes, numberOfCheckBytes);
-        byte[] expectCheckBytes = new byte[numberOfCheckBytes];
-        System.arraycopy(blockBytes, numberOfDataBytes, expectCheckBytes, 0, numberOfCheckBytes);
+        // byte[] checkBytes = ReedSolomonUtil.generateECBytes(encoder, blockBytes, 0, numberOfDataBytes, numberOfCheckBytes);
+        // byte[] expectCheckBytes = new byte[numberOfCheckBytes];
+        // System.arraycopy(blockBytes, numberOfDataBytes, expectCheckBytes, 0, numberOfCheckBytes);
 
-        if(!Arrays.equals(expectCheckBytes, checkBytes)) {
-            throw new QArtException("ecc mismatch");
+        // if(!Arrays.equals(expectCheckBytes, checkBytes)) {
+        //     throw new QArtException("ecc mismatch");
+        // }
+    }
+
+    private void revert(int index) {
+        int nset = 0;
+        int n2set = 0;
+        int rowidx = 0;
+        for (int j=maskIndex; j<maskMatrix.length; j++) {
+            if((maskMatrix[j][index/8]&(1<<(7-index&7))) == 0) {
+                continue;
+            }
+            rowidx = j;
+            nset++;
+        }
+        for (int j=0; j<maskIndex; j++) {
+            if((maskMatrix[j][index/8]&(1<<(7-index&7))) == 0) {
+                continue;
+            }
+            n2set++;
+        }
+        if (nset == 1 && n2set == 0) {
+            exchangeRow(maskMatrix, maskIndex, rowidx);
+            maskIndex++;
         }
     }
 
@@ -87,6 +117,14 @@ public class BitBlock {
     }
 
     public boolean canSet(int index, byte value) throws QArtException {
+
+        if (blockBytesAE[index/8]) {
+            if(((blockBytes[index/8]>>(7-index&7))&1) != (value&1)) {
+                blockBytes[index/8] ^= 1;
+            }
+            return true;
+        }
+
         boolean found = false;
         for(int j = 0;j < maskIndex;j++) {
             if((maskMatrix[j][index/8]&(1<<(7-index&7))) == 0) {
@@ -107,6 +145,21 @@ public class BitBlock {
         }
 
         if(!found) {
+            if (allowedErrorCount < allowedError) {
+                allowedErrorCount++;
+                blockBytesAE[index >> 3] = true;
+                for (int i=0; i<8; i++) {
+                    revert(index & 0xfffffff8 | i);
+                }
+                if(((blockBytes[index/8]>>(7-index&7))&1) != (value&1)) {
+                    blockBytes[index/8] ^= 1<<(7-index&7);
+                }
+                return true;
+            }
+            // n_ctrl_bits++;
+            // System.out.print("error ");
+            // System.out.println(n_ctrl_bits);
+            // System.out.println(blockBytes.length);
             return false;
         }
 
@@ -127,6 +180,9 @@ public class BitBlock {
         if(((blockBytes[index/8]>>(7-index&7))&1) != (value&1)) {
             for(int j = 0;j < target.length;j++) {
                 byte v = target[j];
+                if (blockBytesAE[j]) {
+                    continue;
+                }
                 blockBytes[j] ^= v;
             }
         }
