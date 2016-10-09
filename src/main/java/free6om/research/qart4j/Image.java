@@ -36,6 +36,7 @@ public class Image {
     private byte[] control;
 
     private boolean noAlign;
+    private boolean noTiming;
     private int pixelPriority;
 
     public Image(int[][] target, int dx, int dy, int version) {
@@ -47,7 +48,7 @@ public class Image {
 
     public Image(int[][] target, int dx, int dy, String URL,
                  int version, int mask, int rotation,
-                 boolean randControl, long seed, boolean dither, boolean onlyDataBits, boolean saveControl, boolean noAlign, int pixelPriority) throws IOException, ImageReadException {
+                 boolean randControl, long seed, boolean dither, boolean onlyDataBits, boolean saveControl, boolean noAlign, boolean noTiming, int pixelPriority) throws IOException, ImageReadException {
         this.target = target;
         this.dx = dx;
         this.dy = dy;
@@ -63,6 +64,7 @@ public class Image {
         this.onlyDataBits = onlyDataBits;
         this.saveControl = saveControl;
         this.noAlign = noAlign;
+        this.noTiming = noTiming;
         this.pixelPriority = pixelPriority;
 
         this.divider = calculateDivider();
@@ -122,6 +124,10 @@ public class Image {
 
     public void setNoAlign(boolean noAlign) {
         this.noAlign = noAlign;
+    }
+
+    public void setNoTiming(boolean noTiming) {
+        this.noTiming = noTiming;
     }
 
     public void setPixelPriority(int pixelPriority) {
@@ -539,28 +545,35 @@ public class Image {
         }
 
         if (this.noAlign) {
-            Pixel pixelWhite = new Pixel(Pixel.PixelRole.ALIGNMENT);
-            Pixel pixelBlack = new Pixel(Pixel.PixelRole.ALIGNMENT);
-            pixelBlack.setPixel(Pixel.BLACK.getPixel());
-            for(int y = 0;y < pixels.length;y++) {
-                Pixel[] row = pixels[y];
-                for(int x = 0;x < row.length;x++) {
-                    Pixel pixel = row[x];
-                    Pixel.PixelRole role = pixel.getPixelRole();
-                    if (role != Pixel.PixelRole.ALIGNMENT) {
-                        continue;
-                    }
-                    if (y > pixels.length - 10 && x > row.length - 10) {
-                        continue;
-                    }
-                    int targ = target(x, y).target & 0xff;
+            removePattern(Pixel.PixelRole.ALIGNMENT, pixels);
+        }
 
-                    pixels[y][x] = (targ >= this.divider) ? pixelWhite : pixelBlack;
-                }
-            }
+        if (this.noTiming) {
+            removePattern(Pixel.PixelRole.TIMING, pixels);
         }
 
         return qrCode;
+    }
+
+    private void removePattern(Pixel.PixelRole target_role, Pixel[][] pixels) {
+        Pixel pixelWhite = new Pixel(target_role);
+        Pixel pixelBlack = new Pixel(target_role);
+        pixelBlack.setPixel(Pixel.BLACK.getPixel());
+        for(int y = 0;y < pixels.length;y++) {
+            Pixel[] row = pixels[y];
+            for(int x = 0;x < row.length;x++) {
+                Pixel pixel = row[x];
+                if (pixel.getPixelRole() != target_role) {
+                    continue;
+                }
+                if (y > pixels.length - 10 && x > row.length - 10) {
+                    continue;
+                }
+                int targ = target(x, y).target & 0xff;
+
+                pixels[y][x] = (targ >= this.divider) ? pixelWhite : pixelBlack;
+            }
+        }
     }
 
     private int calculateDivider() {

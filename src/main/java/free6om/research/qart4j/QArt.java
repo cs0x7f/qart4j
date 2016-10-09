@@ -99,6 +99,10 @@ public class QArt {
                         .ofType(Boolean.class)
                         .describedAs("remove some of alignment patterns")
                         .defaultsTo(Boolean.FALSE);
+                acceptsAll(Arrays.asList("nt", "noTiming")).withOptionalArg()
+                        .ofType(Boolean.class)
+                        .describedAs("remove timing patterns")
+                        .defaultsTo(Boolean.FALSE);
                 acceptsAll(Arrays.asList("pp", "pixelPriority")).withOptionalArg()
                         .ofType(Integer.class)
                         .describedAs("Priority of pixels, 0 calculated by contrast, 1 center first (square), 2 center first (circle), 3 center first (5:4 rectangle)")
@@ -171,6 +175,7 @@ public class QArt {
         boolean onlyDataBits = (Boolean) options.valueOf("onlyData");
         boolean saveControl = options.has("saveControl");
         boolean noAlign = options.has("noAlign");
+        boolean noTiming = options.has("noTiming");
         int pixelPriority = (Integer) options.valueOf("pixelPriority");
 
         //output image
@@ -238,7 +243,7 @@ public class QArt {
             }
 
 
-            Image image = new Image(target, dx, dy, url, version, mask, rotation, randControl, seed, dither, onlyDataBits, saveControl, noAlign, pixelPriority);
+            Image image = new Image(target, dx, dy, url, version, mask, rotation, randControl, seed, dither, onlyDataBits, saveControl, noAlign, noTiming, pixelPriority);
 
             QRCode qrCode = image.encode();
             BitMatrix bitMatrix = ImageUtil.makeBitMatrix(qrCode, quietZone, size);
