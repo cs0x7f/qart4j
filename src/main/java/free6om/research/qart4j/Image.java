@@ -320,27 +320,27 @@ public class Image {
 
                 // Preserve [0, lo) and [hi, nd*8).
                 for (int i = 0; i < low; i++) {
-                    if (!bitBlock.canSet(i, (byte) ((data[dataOffset/8 + i/8]>>(7-i&7))&1))) {
+                    if (!bitBlock.canSet(i, (byte) ((data[dataOffset/8 + i/8]>>(7-i&7))&1), low, high)) {
                         throw new QArtException("cannot preserve required bits");
                     }
                 }
                 for (int i = high; i < nd*8; i++) {
-                    if (!bitBlock.canSet(i, (byte) ((data[dataOffset/8 + i/8]>>(7-i&7))&1))) {
+                    if (!bitBlock.canSet(i, (byte) ((data[dataOffset/8 + i/8]>>(7-i&7))&1), low, high)) {
                         throw new QArtException("cannot preserve required bits");
                     }
                 }
 
                 // Can edit [lo, hi) and checksum bits to hit target.
                 // Determine which ones to try first.
-                PixelOrder[] order = new PixelOrder[(high - low) + numberOfCheckBytesPerBlock*8];
+                PixelOrder[] order = new PixelOrder[nd*8 + numberOfCheckBytesPerBlock*8];
                 for(int i = 0;i < order.length;i++) {
                     order[i] = new PixelOrder();
                 }
-                for (int i = low; i < high; i++) {
-                    order[i-low].setOffset(dataOffset + i);
+                for (int i = 0; i < nd*8; i++) {
+                    order[i].setOffset(dataOffset + i);
                 }
                 for (int i = 0; i < numberOfCheckBytesPerBlock*8; i++) {
-                    order[high-low+i].setOffset(plan.getNumberOfDataBytes()*8 + checkOffset + i);
+                    order[nd*8+i].setOffset(plan.getNumberOfDataBytes()*8 + checkOffset + i);
                 }
                 if (onlyDataBits) {
                     order = Arrays.copyOf(order, high - low);
@@ -383,13 +383,15 @@ public class Image {
                     }
 
                     int index;
+                    boolean shouldKeep = false;
 
                     if (pixel.getPixelRole() == Pixel.PixelRole.DATA) {
                         index = po.getOffset() - dataOffset;
+                        shouldKeep = index < low || index >= high;
                     } else {
                         index = po.getOffset() - plan.getNumberOfDataBytes()*8 - checkOffset + nd*8;
                     }
-                    if (bitBlock.canSet(index, (byte) value)) {
+                    if (shouldKeep ? bitBlock.tryError(index, (byte) value, low, high) : bitBlock.canSet(index, (byte) value, low, high)) {
                         info.setBlock(bitBlock);
                         info.setBitIndex(index);
                         if(mark) {
