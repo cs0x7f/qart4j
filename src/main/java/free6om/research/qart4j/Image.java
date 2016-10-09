@@ -236,6 +236,10 @@ public class Image {
         int numberOfExtraBytes = plan.getNumberOfDataBytes() - numberOfDataBytesPerBlock * plan.getNumberOfBlocks();
         ReedSolomonEncoder encoder = new ReedSolomonEncoder(GenericGF.QR_CODE_FIELD_256);
 
+        if (allowedError < 0) {
+            allowedError += numberOfCheckBytesPerBlock / 2 + 1;
+        }
+
         // Build information about pixels, indexed by data/check bit number.
         PixelInfo[] pixelByOffset = new PixelInfo[(plan.getNumberOfDataBytes() + plan.getNumberOfCheckBytes()) * 8];
         boolean[][] expect = new boolean[plan.getPixels().length][plan.getPixels().length];

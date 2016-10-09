@@ -109,7 +109,7 @@ public class QArt {
                         .defaultsTo(0);
                 acceptsAll(Arrays.asList("ae", "allowedError")).withOptionalArg()
                         .ofType(Integer.class)
-                        .describedAs("Number of codewords allowed to be a desired error.")
+                        .describedAs("Allow correctable error(s). 0: Do not allow, positive integer indicates the number of error codewords allowed, negative integer indicates the gap to the correction capability, e.g '-1' means use all correction capability without redundancy.")
                         .defaultsTo(0);
                 //output image
                 acceptsAll(Arrays.asList("mt", "marginTop")).withOptionalArg()
