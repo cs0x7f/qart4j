@@ -6,6 +6,15 @@ All credit goes to Russ Cox.
 Sample output:  
 ![Sample Output](sample-output.png)
 
+Sample output (with -na):  
+![Sample Output](sample-output2.png)
+
+Sample output (with -na -nt):  
+![Sample Output](sample-output3.png)
+
+Sample output (with -na -nt -ae -1):  
+![Sample Output](sample-output4.png)
+
 ##How to generate a runnable jar##
 QArt4j is a maven project, run the following command to get a ruunable jar:
 
