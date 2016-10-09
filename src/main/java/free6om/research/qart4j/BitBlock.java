@@ -120,7 +120,7 @@ public class BitBlock {
 
         if (blockBytesAE[index/8]) {
             if(((blockBytes[index/8]>>(7-index&7))&1) != (value&1)) {
-                blockBytes[index/8] ^= 1;
+                blockBytes[index/8] ^= 1<<(7-index&7);
             }
             return true;
         }
