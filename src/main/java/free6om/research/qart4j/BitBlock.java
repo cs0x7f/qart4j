@@ -14,6 +14,7 @@ public class BitBlock {
     private byte[] decodedBytes;
     private boolean[] blockBytesAE;
     private byte[][] maskMatrix;
+    private static byte[][] maskMatrixStatic;
     private int maskIndex;
     private ReedSolomonEncoder encoder;
     private byte[] primaryDataBytes;
@@ -23,6 +24,42 @@ public class BitBlock {
 
     private int allowedErrorCount;
     private int allowedError;
+
+    private static byte[][] getMaskMatrix(int numberOfDataBytes, int numberOfCheckBytes, ReedSolomonEncoder encoder) {
+        byte[][] maskMatrix = new byte[numberOfDataBytes*8][numberOfDataBytes + numberOfCheckBytes];
+        int iniIdxEnd = 0;
+
+        if (maskMatrixStatic == null || maskMatrixStatic[0].length - maskMatrixStatic.length / 8 != numberOfCheckBytes) {
+            maskMatrixStatic = new byte[numberOfDataBytes*8][numberOfDataBytes + numberOfCheckBytes];
+            iniIdxEnd = numberOfDataBytes * 8;
+        } else if (maskMatrixStatic.length != numberOfDataBytes * 8) {
+            byte[][] maskMatrixStaticOld = maskMatrixStatic;
+            maskMatrixStatic = new byte[numberOfDataBytes*8][numberOfDataBytes + numberOfCheckBytes];
+            iniIdxEnd = numberOfDataBytes * 8 - maskMatrixStaticOld.length;
+            for (int i = iniIdxEnd; i < maskMatrixStatic.length; i++) {
+                Arrays.fill(maskMatrixStatic[i], (byte) 0);
+                System.arraycopy(
+                    maskMatrixStaticOld[i - iniIdxEnd], 0,
+                    maskMatrixStatic[i], iniIdxEnd / 8, maskMatrixStaticOld[0].length
+                );
+            }
+        }
+
+        for(int i = 0;i < iniIdxEnd; i++) {
+            Arrays.fill(maskMatrixStatic[i], (byte) 0);
+            maskMatrixStatic[i][i/8] = (byte) (1 << (7 - i%8));
+            System.arraycopy(
+                ReedSolomonUtil.generateECBytes(encoder, maskMatrixStatic[i], 0, numberOfDataBytes, numberOfCheckBytes), 0,
+                maskMatrixStatic[i], numberOfDataBytes, numberOfCheckBytes
+            );
+        }
+
+        return maskMatrixStatic;
+        // for(int i = 0;i < numberOfDataBytes*8;i++) {
+        //     System.arraycopy(maskMatrixStatic[i], 0, maskMatrix[i], 0, numberOfDataBytes + numberOfCheckBytes);
+        // }
+        // return maskMatrix;
+    }
 
     public BitBlock(int numberOfDataBytes, int numberOfCheckBytes, ReedSolomonEncoder encoder, byte[] primaryDataBytes, int primaryDataIndex, byte[] primaryCheckBytes, int primaryCheckIndex, int allowedError) throws QArtException {
         this.numberOfDataBytes = numberOfDataBytes;
@@ -49,17 +86,9 @@ public class BitBlock {
             throw new QArtException("check data not match");
         }
 
-        this.maskMatrix = new byte[numberOfDataBytes*8][numberOfDataBytes + numberOfCheckBytes];
+        this.maskMatrix = getMaskMatrix(numberOfDataBytes, numberOfCheckBytes, encoder);
         this.maskIndex = this.maskMatrix.length;
-        for(int i = 0;i < numberOfDataBytes*8;i++) {
-            for(int j = 0;j < numberOfDataBytes + numberOfCheckBytes;j++) {
-                maskMatrix[i][j] = 0;
-            }
 
-            maskMatrix[i][i/8] = (byte) (1 << (7 - i%8));
-            checkBytes = ReedSolomonUtil.generateECBytes(encoder, maskMatrix[i], 0, numberOfDataBytes, numberOfCheckBytes);
-            System.arraycopy(checkBytes, 0, maskMatrix[i], numberOfDataBytes, numberOfCheckBytes);
-        }
     }
 
     public byte[] getBlockBytes() {
@@ -198,7 +227,7 @@ public class BitBlock {
             }
         }
 
-        this.check();
+        // this.check();
         exchangeRow(maskMatrix, 0, maskIndex - 1);
         maskIndex--;
 

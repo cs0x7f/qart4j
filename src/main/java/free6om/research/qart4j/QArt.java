@@ -247,7 +247,6 @@ public class QArt {
                 dy = (qrWithoutQuietRect.start.y - targetRect.start.y)/scale;
             }
 
-
             Image image = new Image(target, dx, dy, url, version, mask, rotation, randControl, seed, dither, onlyDataBits, saveControl, noAlign, noTiming, pixelPriority, allowedError);
 
             QRCode qrCode = image.encode();

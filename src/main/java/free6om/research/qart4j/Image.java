@@ -272,7 +272,6 @@ public class Image {
         dataEncoding.encode(bits, plan.getVersion());
         new Padding(new byte[0]).encode(bits, plan.getVersion());
         int headSize = bits.getSize();
-        System.out.println("headSize: " + headSize);
         int dataBitsRemaining = plan.getNumberOfDataBytes()*8 - headSize;
         if(dataBitsRemaining < 0) {
             throw new QArtException("cannot encode URL into available bits");
@@ -356,14 +355,7 @@ public class Image {
                 Arrays.sort(order, new Comparator<PixelOrder>() {
                     @Override
                     public int compare(PixelOrder o1, PixelOrder o2) {
-                        if(o2.getPriority() > o1.getPriority()) {
-                            return 1;
-                        }
-                        if(o2.getPriority() == o1.getPriority()) {
-                            return 0;
-                        }
-
-                        return -1;
+                        return o2.getPriority() - o1.getPriority();
                     }
                 });
 
@@ -522,7 +514,6 @@ public class Image {
                 paddings[i] = (byte) ((data[index/8] >> (7 - index&7)) & 1);;
             }
         } while (errorCount > 0);
-
 
         // Bits finalBits = new Bits();
         // dataEncoding.encode(finalBits, plan.getVersion());
