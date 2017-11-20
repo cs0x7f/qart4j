@@ -545,6 +545,8 @@ public class Image {
             }
         }
 
+        removePattern(Pixel.PixelRole.EXTRA, pixels);
+
         if (this.noAlign) {
             removePattern(Pixel.PixelRole.ALIGNMENT, pixels);
         }
